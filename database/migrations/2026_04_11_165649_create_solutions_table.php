@@ -6,32 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // 🔥 STEP 1: BUAT TABLE TANPA FK
         Schema::create('solutions', function (Blueprint $table) {
             $table->id();
-
+            $table->unsignedBigInteger('category_id');
             $table->string('name');
-
-            // ✅ FIX DI SINI
-            $table->foreignId('category_id')
-                ->constrained('kategoris')
-                ->cascadeOnDelete();
-
-            $table->string('brand')->nullable();
-            $table->decimal('price', 15, 2)->nullable();
             $table->text('description')->nullable();
-
             $table->timestamps();
+        });
+
+        // 🔥 STEP 2: TAMBAH FOREIGN KEY SETELAH TABLE ADA
+        Schema::table('solutions', function (Blueprint $table) {
+            $table->foreign('category_id')
+                ->references('id')
+                ->on('categories')
+                ->cascadeOnDelete();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('solutions');

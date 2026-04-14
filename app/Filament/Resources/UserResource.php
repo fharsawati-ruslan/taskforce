@@ -86,15 +86,14 @@ class UserResource extends Resource
             ->columns([
 
                 // 🔥 AVATAR
-                ImageColumn::make('avatar')
-                 ->disk('public')
+              ImageColumn::make('avatar_url')
+                ->label('Avatar')
                  ->circular()
                  ->size(40)
                 ->defaultImageUrl(url('/images/default-avatar.png')),
                 TextColumn::make('name')
                     ->searchable()
                     ->weight('bold'),
-
                 TextColumn::make('email')
                     ->searchable(),
 
@@ -136,11 +135,11 @@ class UserResource extends Resource
             ])
 
             // 🔥 TOMBOL CREATE (INI YANG KEMARIN HILANG 😄)
-            ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->label('Add User')
-                    ->icon('heroicon-o-user-plus'),
-            ])
+            //->headerActions([
+              //  Tables\Actions\CreateAction::make()
+                //    ->label('Add User')
+                  //  ->icon('heroicon-o-user-plus'),
+            //])
 
             ->actions([
                 Tables\Actions\EditAction::make(),

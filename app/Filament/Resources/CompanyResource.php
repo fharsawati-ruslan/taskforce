@@ -2,18 +2,31 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\CompanyResource\Pages;
 use App\Models\Company;
+use App\Exports\CompanyExport;
+use App\Imports\CompanyImport;
 
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\{TextInput, Textarea, Select, Section};
+use Filament\Forms\Components\{
+    TextInput,
+    Textarea,
+    Select,
+    Section,
+    FileUpload
+};
 
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Actions\Action;
 
 use Filament\Resources\Resource;
+use Filament\Notifications\Notification;
+
+use Maatwebsite\Excel\Facades\Excel;
+
+use App\Filament\Resources\CompanyResource\Pages;
 
 class CompanyResource extends Resource
 {
@@ -27,101 +40,47 @@ class CompanyResource extends Resource
     protected static ?string $modelLabel = 'Perusahaan';
 
     protected static ?int $navigationSort = 1;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
+        return $form->schema([
 
-                // 🔥 INFORMASI
-                Section::make('Informasi Perusahaan')
-                    ->schema([
+            Section::make('Informasi Perusahaan')
+                ->schema([
 
-                        TextInput::make('name')
-                            ->label('Nama Perusahaan')
-                            ->required()
-                            ->maxLength(255),
+                    TextInput::make('name')
+                        ->label('Nama Perusahaan')
+                        ->required(),
 
-                        Select::make('industry_id')
-                            ->label('Industri')
-                            ->relationship('industry', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->createOptionForm([
-                                TextInput::make('name')
-                                    ->label('Nama Industri')
-                                    ->required(),
-                            ]),
+                    Select::make('industry_id')
+                        ->relationship('industry', 'name')
+                        ->required()
+                        ->searchable()
+                        ->preload(),
 
-                        TextInput::make('customer_name')
-                            ->label('Nama Customer'),
+                    TextInput::make('customer_name'),
+                    TextInput::make('pic_name'),
+                    TextInput::make('pic_position'),
 
-                        TextInput::make('pic_name')
-                            ->label('PIC Customer'),
+                ])->columns(2),
 
-                        TextInput::make('pic_position')
-                            ->label('Jabatan PIC'),
+            Section::make('Kontak')
+                ->schema([
 
-                    ])
-                    ->columns(2),
+                    TextInput::make('office_phone'),
+                    TextInput::make('mobile_phone'),
+                    TextInput::make('email')->email(),
+                    TextInput::make('website')->url(),
 
-                // 📞 KONTAK
-                Section::make('Kontak')
-                    ->schema([
+                ])->columns(2),
 
-                        TextInput::make('office_phone')
-                            ->label('Telepon Kantor')
-                            ->tel(),
-
-                        TextInput::make('mobile_phone')
-                            ->label('No. HP')
-                            ->tel()
-                            ->suffixAction(
-                                fn ($state) =>
-                                    \Filament\Forms\Components\Actions\Action::make('wa')
-                                        ->icon('heroicon-m-chat-bubble-left-right')
-                                        ->url(fn () => $state ? 'https://wa.me/' . preg_replace('/^0/', '62', $state) : null)
-                                        ->openUrlInNewTab()
-                            ),
-
-                        TextInput::make('email')
-                            ->label('Email')
-                            ->email(),
-
-                        TextInput::make('website')
-                            ->label('Website')
-                            ->url()
-                            ->placeholder('https://example.com')
-                            ->suffixIcon('heroicon-m-globe-alt')
-                            ->formatStateUsing(fn ($state) =>
-                                $state && !str_starts_with($state, 'http')
-                                    ? 'https://' . $state
-                                    : $state
-                            )
-                            ->suffixAction(
-                                fn ($state) =>
-                                    \Filament\Forms\Components\Actions\Action::make('open')
-                                        ->icon('heroicon-m-arrow-top-right-on-square')
-                                        ->url($state)
-                                        ->openUrlInNewTab()
-                            ),
-
-                    ])
-                    ->columns(2),
-
-                // 📍 ALAMAT
-                Section::make('Alamat')
-                    ->schema([
-
-                        Textarea::make('address')
-                            ->label('Alamat')
-                            ->rows(3)
-                            ->columnSpanFull(),
-
-                    ]),
-            ]);
+            Section::make('Alamat')
+                ->schema([
+                    Textarea::make('address')->columnSpanFull(),
+                ]),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -129,46 +88,92 @@ class CompanyResource extends Resource
         return $table
             ->columns([
 
-                TextColumn::make('name')
-                    ->label('Perusahaan')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('bold'),
+                TextColumn::make('name')->searchable()->sortable(),
 
                 TextColumn::make('industry.name')
                     ->label('Industri')
-                    ->badge()
-                    ->sortable(),
+                    ->badge(),
 
-                TextColumn::make('pic_name')
-                    ->label('PIC'),
-
-                TextColumn::make('mobile_phone')
-                    ->label('No HP'),
+                TextColumn::make('pic_name')->label('PIC'),
+                TextColumn::make('mobile_phone')->label('No HP'),
 
                 TextColumn::make('website')
-                    ->label('Website')
                     ->url(fn ($record) => $record->website)
-                    ->openUrlInNewTab()
-                    ->toggleable(),
+                    ->openUrlInNewTab(),
 
-                TextColumn::make('email')
-                    ->copyable(),
+                TextColumn::make('email')->copyable(),
 
                 TextColumn::make('created_at')
                     ->label('Dibuat')
-                    ->dateTime('d M Y')
-                    ->sortable(),
+                    ->dateTime('d M Y'),
 
             ])
+
+            ->headerActions([
+
+                // ✅ EXPORT
+                Action::make('export')
+                    ->label('Export')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->action(function () {
+                        return Excel::download(new CompanyExport(), 'company.xlsx');
+                    }),
+
+                // ✅ IMPORT (FIX FINAL)
+                Action::make('import')
+                    ->label('Import')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->color('warning')
+                    ->form([
+                        FileUpload::make('file')
+                            ->label('Upload Excel')
+                            ->required()
+                            ->storeFiles(false) // 🔥 WAJIB (biar gak error upload)
+                    ])
+                    ->action(function (array $data) {
+
+                        try {
+                            $file = $data['file'];
+
+                            if (!$file) {
+                                throw new \Exception('File tidak ditemukan');
+                            }
+
+                            // 🔥 IMPORT LANGSUNG
+                            Excel::import(
+                                new CompanyImport,
+                                $file->getRealPath()
+                            );
+
+                            Notification::make()
+                                ->title('Import berhasil!')
+                                ->success()
+                                ->send();
+
+                        } catch (\Throwable $e) {
+
+                            Notification::make()
+                                ->title('Import gagal')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+            ])
+
             ->defaultSort('name', 'asc')
+
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ])
+
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
             ])
+
             ->striped()
             ->paginated([10, 25, 50]);
     }

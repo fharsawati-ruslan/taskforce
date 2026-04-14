@@ -22,6 +22,7 @@ class User extends Authenticatable
         'otp',
         'otp_expired_at',
         'division',
+        'avatar', // 🔥 WAJIB
     ];
 
     /**
@@ -142,4 +143,27 @@ class User extends Authenticatable
             default => 'Unknown',
         };
     }
+
+    public function getAvatarUrlAttribute(): string
+{
+    // ✅ kalau ada upload
+    if ($this->avatar) {
+        return asset('storage/' . $this->avatar);
+    }
+
+    // 🔥 ambil nama
+    $name = $this->name ?? 'User';
+
+    // 🔥 ambil 2 huruf inisial
+    $initials = collect(explode(' ', $name))
+        ->map(fn ($word) => strtoupper(substr($word, 0, 1)))
+        ->take(2)
+        ->implode('');
+
+    // 🔥 warna konsisten dari nama
+    $colors = ['0D8ABC', '6F42C1', '198754', 'DC3545', 'FD7E14'];
+    $color = $colors[crc32($name) % count($colors)];
+
+    return "https://ui-avatars.com/api/?name={$initials}&background={$color}&color=fff&size=128";
+}
 }
