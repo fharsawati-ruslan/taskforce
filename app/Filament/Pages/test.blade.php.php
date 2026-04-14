@@ -1,0 +1,1 @@
+protected static string $view = 'filament.pages.test';

@@ -20,19 +20,28 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $navigationGroup = 'Management';
+    //protected static ?string $navigationGroup = 'Management';
+  protected static ?string $navigationGroup = '👥 Manajemen User';
+    protected static ?string $navigationLabel = 'User';
+
+     protected static ?int $navigationSort = 1;  
 
     public static function form(Form $form): Form
     {
         return $form->schema([
 
             // 🔥 AVATAR
-            FileUpload::make('avatar')
-                ->image()
-                ->directory('avatars')
-                ->imagePreviewHeight('120')
-                ->circleCropper()
-                ->columnSpanFull(),
+        FileUpload::make('avatar')
+            ->image()
+            ->directory('avatars')
+            ->disk('public') // 🔥 WAJIB
+            ->imagePreviewHeight('250') // 🔥 BESARIN
+            ->imageCropAspectRatio('1:1') // biar kotak dulu
+            ->imageResizeTargetWidth(300)
+            ->imageResizeTargetHeight(300)
+            ->circleCropper() // tetap bulat
+            ->columnSpanFull(),
+       
 
             TextInput::make('name')
                 ->required()
@@ -78,9 +87,10 @@ class UserResource extends Resource
 
                 // 🔥 AVATAR
                 ImageColumn::make('avatar')
-                    ->circular()
-                    ->defaultImageUrl(url('/images/default-avatar.png')),
-
+                 ->disk('public')
+                 ->circular()
+                 ->size(40)
+                ->defaultImageUrl(url('/images/default-avatar.png')),
                 TextColumn::make('name')
                     ->searchable()
                     ->weight('bold'),

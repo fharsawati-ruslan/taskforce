@@ -28,12 +28,12 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-
+            ->brandName('TRINET')
             // ✅ custom login (OTP)
             ->login(\App\Filament\Auth\Login::class)
 
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
             ])
 
             ->discoverResources(
