@@ -31,7 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('TRINET')
             // ✅ custom login (OTP)
             ->login(\App\Filament\Auth\Login::class)
-
+            
             ->colors([
                 'primary' => Color::Blue,
             ])

@@ -11,7 +11,7 @@ use App\Http\Controllers\OtpController;
 
 // 🏠 Home
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/admin/login');
 });
 
 // 🔐 OTP PAGE
